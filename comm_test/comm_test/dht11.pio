@@ -1,0 +1,61 @@
+
+.program dht11_read
+    set pindirs, 1   ; Set pin to output
+
+; Wait for each edge and measure high pulse width
+; Push duration to FIFO
+
+
+;wait_for_response:
+;    wait 0 pin 0         ; Wait for first LOW (sensor response)
+;    wait 1 pin 0         ; Wait for HIGH
+;loop:
+;    wait 0 pin 0         ; Wait for next LOW (start of bit)
+;    wait 1 pin 0         ; Wait for HIGH
+;    set x, 0             ; Zero timer
+;count_high:
+;    jmp pin continue     ; While still high
+;    jmp push_result      ; Else, bit ended
+;continue:
+;    jmp x-- count_high   ; Count cycles in X
+
+loop:
+    pull block        ; Pull value from FIFO into OSR
+    out x, 32         ; Move all 32 bits from OSR to x register
+    pull block        ; Pull value from FIFO into OSR
+    out y, 32         ; Move all 32 bits from OSR to x register
+    set pindirs, 1    ; Set pin to output
+
+send_start:
+    set pins, 0       ; Drive pin low
+wait_start:
+    jmp x-- wait_start
+    set pindirs, 0    ; Set pin to input
+    set pins, 1       ; Drive pin high
+
+    ; Read through the initial start pulse
+    wait 0 pin 0      ; Wait for pin to be low
+    wait 1 pin 0      ; While pin is low
+    wait 0 pin 0      ; Wait for pin to be low
+
+read:
+    mov x, y          ; Reset timer
+    wait 1 pin 0      ; While pin is low
+
+    ;wait 0 pin 0      ; While pin is high
+    ;wait 1 pin 0      ; While pin is low
+
+count_high:
+    jmp pin continue  ; While pin is high
+
+push_result:
+    in x, 32           ; Push to ISR
+    push
+    jmp read
+
+continue:
+    jmp x-- count_high ; Count cycles in X
+    jmp loop
+
+
+
